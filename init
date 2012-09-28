@@ -19,6 +19,7 @@ NAME=liveFolderSync
 DAEMON=/usr/sbin/$NAME
 PIDFILE=/var/lock/subsys/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
+INOTIFY=inotifywait
 
 # Get function from functions library
 . /etc/init.d/functions
@@ -29,7 +30,7 @@ test -x $DAEMON || exit 5
 start() {
     echo -n "Starting $NAME: "
     #start daemons, perhaps with the daemon function
-    daemon $DAEMON
+    $DAEMON &
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && touch $PIDFILE
@@ -39,6 +40,7 @@ start() {
 stop() {
     echo -n "Shutting down $NAME: "
     killproc $NAME -QUIT
+    killproc $INOTIFY -QUIT
     RETVAL=$?
     echo
     [ $RETVAL -eq 0 ] && rm -f $PIDFILE

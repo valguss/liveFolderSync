@@ -16,7 +16,7 @@ BASEDIR="/root/testdir"
 TARGETSERVER="/root/testdirToGoTo"
 
 #rsync command and parameters
-RSYNC="rsync -avzq"
+RSYNC="rsync -avz"
 
 #set logfile
 LOGFILE="/var/log/liveFolderSync.log"
@@ -32,7 +32,7 @@ finishSyncAndExit() {
 }
 
 #trap keyboard abort and run
-trap finishSyncAndExit SIGINT
+#trap finishSyncAndExit SIGINT
 
 # Initial sync
 log "Performing initial sync"
