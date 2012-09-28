@@ -32,11 +32,11 @@ finishSyncAndExit() {
 }
 
 #trap keyboard abort and run
-#trap finishSyncAndExit SIGINT
+trap finishSyncAndExit SIGINT
 
 # Initial sync
 log "Performing initial sync"
-$RSYNC ${BASEDIR}/* ${TARGETSERVER}/
+$RSYNC ${BASEDIR}/* ${TARGETSERVER}/ &
 log "Initial sync complete"
 
 # Wait for individual file events and keep in sync
