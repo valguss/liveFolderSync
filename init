@@ -25,11 +25,15 @@ SCRIPTNAME=/etc/init.d/$NAME
 # description: Foo server
 #
 # Get function from functions library
-. /etc/init.d/functions
+. /lib/lsb/init-functions
 # Start the service FOO
+
+#make sure files are there
+test -x $DAEMON || exit 5
+
 start() {
         initlog -c "echo -n Starting $NAME server: "
-        $DAEMON &
+        nohup $DAEMON &
         ### Create the lock file ###
         touch $PIDFILE
         success $"$NAME server startup"
@@ -46,6 +50,17 @@ stop() {
 ### main logic ###
 case "$1" in
   start)
+	#check if PID file exists before starting process
+	if [ -e $PIDFILE ]; then
+		status_of_proc -p $PIDFILE $DAEMON "$NAME proccess" && status="0" || status="$?"
+		#if the status is SUCCESS then don't need to start again
+		if [ $status = "0" ]; then
+			exit #exit
+		fi
+	fi
+	log_daemon_msg "Starting the process" "$NAME"
+	#start the daemon wit hthe help of start-stop-daemon
+	#log the message appropriately
         start
         ;;
   stop)
