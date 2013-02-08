@@ -1,2 +1,0 @@
-#User to run rsync and SSH from (User holding the SSH key)
-USER="root"

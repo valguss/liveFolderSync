@@ -4,29 +4,45 @@
 # 2. Invoke this script like:
 # nohup ./liveFolderSync.sh &
 
+#exit immediatly if simple command exists with non-zero status
 set -e
+#error out if variables are unset
 set -u
 
-source /etc/liveFolderSync
+#Base directory, eg /var/www/uploads
+BASEDIR="/root/testdir"
 
-RSYNC="rsync -a --delete -e ssh"
+#Slave server IP address 
+TARGETSERVER="/root/testdirToGoTo"
+
+#rsync command and parameters
+RSYNC="rsync -avz"
+
+#set logfile
+LOGFILE="/var/log/liveFolderSync.log"
 
 #Logger Function
-log() { logger -p daemon.info -t "liveFolderSync" "$@"; echo "$@"; }
+log() { 
+    echo "$@" >> ${LOGFILE}
+}
 
 #Make sure any running sync completes before exiting
-finishSyncAndExiti() { log "Completing currently running syncs";   }
+finishSyncAndExit() {
+    log "Completing currently running syncs"; 
+}
+
+#trap keyboard abort and run
 trap finishSyncAndExit SIGINT
 
 # Initial sync
 log "Performing initial sync"
-$RSYNC ${BASEDIR}/* ${TAGRETSERVER}:${BASEDIR}/
+$RSYNC ${BASEDIR}/* ${TARGETSERVER}/
 log "Initial sync complete"
 
 # Wait for individual file events and keep in sync
 inotifywait --format '%e %w' -e close_write -e move -e create -e delete -qmr $BASEDIR | while read EVENT DIR
 do
 	# Fork off rsync proc to do sync
-	$RSYNC ${DIR}/* ${TAGRETSERVER}:${DIR}/ &
+	$RSYNC ${DIR}/* ${TARGETSERVER}/ &
 	log "${EVENT} on ${DIR} triggered sync with PID $!"
 done

@@ -16,81 +16,50 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="Realtime Folder Syncronisation across servers"
 NAME=liveFolderSync
 DAEMON=/usr/sbin/$NAME
-DAEMON_ARGS="--options args"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
-[ -x "$DAEMON" ] || exit 0
-
-[ -r /etc/default/$NAME ] && . /etc/default/$NAME
-
-. /lib/init/vars.sh
-
-. /lib/lsb/init-functions
-
-do_start()
-{
-	start-stop-daemon -u $USER --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
-		|| return 1
-	start-stop-daemon -u $USER --start --quiet --pidfile $PIDFILE --exec $DAEMON -- \
-		$DAEMON_ARGS \
-		|| return 2
+#!/bin/bash
+#
+# chkconfig: 35 90 12
+# description: Foo server
+#
+# Get function from functions library
+. /etc/init.d/functions
+# Start the service FOO
+start() {
+        initlog -c "echo -n Starting $NAME server: "
+        $DAEMON &
+        ### Create the lock file ###
+        touch $PIDFILE
+        success $"$NAME server startup"
+        echo
 }
-
-do_stop()
-{
-	start-stop-daemon -u $USER --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE --name $NAME
-	RETVAL="$?"
-	[ "$RETVAL" = 2 ] && return 2
-	# Wait for children to finish
-	start-stop-daemon -u $USER --stop --quiet --oknodo --retry=0/30/KILL/5 --exec $DAEMON
-	[ "$?" = 2 ] && return 2
-	rm -f $PIDFILE
-	return "$RETVAL"
+# Restart the service FOO
+stop() {
+        initlog -c "echo -n Stopping $NAME server: "
+        killproc $NAME
+        ### Now, delete the lock file ###
+        rm -f $PIDFILE
+        echo
 }
-
+### main logic ###
 case "$1" in
   start)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
-	do_start
-	case "$?" in
-		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-	esac
-	;;
+        start
+        ;;
   stop)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-	do_stop
-	case "$?" in
-		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-	esac
-	;;
+        stop
+        ;;
   status)
-       status_of_proc "$DAEMON" "$NAME" && exit 0 || exit $?
-       ;;
-  restart|force-reload)
-	log_daemon_msg "Restarting $DESC" "$NAME"
-	do_stop
-	case "$?" in
-	  0|1)
-		do_start
-		case "$?" in
-			0) log_end_msg 0 ;;
-			1) log_end_msg 1 ;; # Old process is still running
-			*) log_end_msg 1 ;; # Failed to start
-		esac
-		;;
-	  *)
-	  	# Failed to stop
-		log_end_msg 1
-		;;
-	esac
-	;;
+        status $NAME
+        ;;
+  restart|reload|condrestart)
+        stop
+        start
+        ;;
   *)
-	echo "Usage: $SCRIPTNAME {start|stop|status|restart|force-reload}" >&2
-	exit 3
-	;;
+        echo $"Usage: $0 {start|stop|restart|reload|status}"
+        exit 1
 esac
-
-:
+exit 0
