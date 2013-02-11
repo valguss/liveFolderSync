@@ -17,68 +17,84 @@ PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="Realtime Folder Syncronisation across servers"
 NAME=liveFolderSync
 DAEMON=/usr/sbin/$NAME
-PIDFILE=/var/run/$NAME.pid
+PIDFILE=/var/lock/subsys/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
 # Get function from functions library
-. /lib/lsb/init-functions
+. /etc/init.d/functions
 
 #make sure files are there
 test -x $DAEMON || exit 5
 
-### main logic ###
+start() {
+    echo -n "Starting $NAME: "
+    #start daemons, perhaps with the daemon function
+    daemon $DAEMON
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $PIDFILE
+    return $RETVAL
+}   
+
+stop() {
+    echo -n "Shutting down $NAME: "
+    killproc $NAME -QUIT
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $PIDFILE
+    return $RETVAL
+}
+
+restart() {
+    stop
+    start
+}
+
+reload() {
+    echo -n $"Reloading $NAME: "
+    killproc $DAEMON -HUP
+    RETVAL=$?
+    echo
+}
+ 
+force_reload() {
+    restart
+}
+ 
+rh_status() {
+    status $NAME
+}
+ 
+rh_status_q() {
+    rh_status >/dev/null 2>&1
+}
+
 case "$1" in
-  start)
-	#check if PID file exists before starting process
-	if [ -e $PIDFILE ]; then
-        log_warning_msg "$NAME already exisits"
-		exit
-	fi
-	log_success_msg "Starting the process" "$NAME"
-	#start the daemon wit hthe help of start-stop-daemon
-	#log the message appropriately
-    if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON ; then
-        log_end_msg 0
-    else
-        log_end_msg 1
-    fi
-    ;;
-    stop)
-    # Stop the daemon.
-    if [ -e $PIDFILE ]; then
-        start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
-        /bin/rm -rf $PIDFILE
-    else
-        log_failure_msg "$NAME process is not running"
-        log_end_msg 0
-    fi
-    ;;
-    restart)
-        # Restart the daemon.
-        $0 stop && sleep 2 && $0 start
+    start)
+        rh_status_q && exit 0
+        $1
         ;;
-    #status)
-        # Check the status of the process.
-    #    if [ -e $PIDFILE ]; then
-    #        status_of_proc -p $PIDFILE $DAEMON "$NAME process" && exit 0 || exit $?
-    #    else
-    #        log_daemon_msg "$NAME Process is not running"
-    #        log_end_msg 0
-    #    fi
-    #;;
+    stop)
+        rh_status_q || exit 0
+        $1
+        ;;
+    restart|configtest)
+        $1
+        ;;
     reload)
-        # Reload the process. Basically sending some signal to a daemon to reload
-        # it configurations.
-        if [ -e $PIDFILE ]; then
-            start-stop-daemon --stop --signal USR1 --quiet --pidfile $PIDFILE --name $NAME
-            log_success_msg "$NAME process reloaded successfully"
-        else
-            log_failure_msg "$PIDFILE does not exists"
-        fi
-    ;;
+        rh_status_q || exit 7
+        $1
+        ;;
+    force-reload)
+        force_reload
+        ;;
+    status)
+        rh_status
+        ;;
+    condrestart|try-restart)
+        rh_status_q || exit 0
+        ;;
     *)
-        # For invalid arguments, print the usage message.
-        echo "Usage: $0 {start|stop|restart|reload}"
+        echo $"Usage: $0 {start|stop|status|restart|condrestart|try-restart|reload|force-reload}"
         exit 2
-    ;;
-    esac
+esac
