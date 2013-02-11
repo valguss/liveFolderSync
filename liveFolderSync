@@ -16,7 +16,7 @@ BASEDIR="/root/testdir"
 TARGETSERVER="/root/testdirToGoTo"
 
 #rsync command and parameters
-RSYNC="rsync -avz"
+RSYNC="rsync -avzq"
 
 #set logfile
 LOGFILE="/var/log/liveFolderSync.log"
