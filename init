@@ -37,11 +37,8 @@ case "$1" in
   start)
 	#check if PID file exists before starting process
 	if [ -e $PIDFILE ]; then
-		status_of_proc -p $PIDFILE $DAEMON "$NAME proccess" && status="0" || status="$?"
-		#if the status is SUCCESS then don't need to start again
-		if [ $status = "0" ]; then
-			exit #exit
-		fi
+        log_daemon_msg "$NAME already exisits"
+		exit
 	fi
 	log_daemon_msg "Starting the process" "$NAME"
 	#start the daemon wit hthe help of start-stop-daemon
@@ -55,11 +52,8 @@ case "$1" in
     stop)
     # Stop the daemon.
     if [ -e $PIDFILE ]; then
-        status_of_proc -p $PIDFILE $DAEMON "Stoppping the $NAME process" && status="0" || status="$?"
-        if [ "$status" = 0 ]; then
-            start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
-            /bin/rm -rf $PIDFILE
-        fi
+        tart-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+        /bin/rm -rf $PIDFILE
     else
         log_daemon_msg "$NAME process is not running"
         log_end_msg 0
@@ -69,15 +63,15 @@ case "$1" in
         # Restart the daemon.
         $0 stop && sleep 2 && $0 start
         ;;
-    status)
+    #status)
         # Check the status of the process.
-        if [ -e $PIDFILE ]; then
-            status_of_proc -p $PIDFILE $DAEMON "$NAME process" && exit 0 || exit $?
-        else
-            log_daemon_msg "$NAME Process is not running"
-            log_end_msg 0
-        fi
-    ;;
+    #    if [ -e $PIDFILE ]; then
+    #        status_of_proc -p $PIDFILE $DAEMON "$NAME process" && exit 0 || exit $?
+    #    else
+    #        log_daemon_msg "$NAME Process is not running"
+    #        log_end_msg 0
+    #    fi
+    #;;
     reload)
         # Reload the process. Basically sending some signal to a daemon to reload
         # it configurations.
@@ -90,7 +84,7 @@ case "$1" in
     ;;
     *)
         # For invalid arguments, print the usage message.
-        echo "Usage: $0 {start|stop|restart|reload|status}"
+        echo "Usage: $0 {start|stop|restart|reload}"
         exit 2
     ;;
     esac
