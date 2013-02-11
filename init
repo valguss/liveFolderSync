@@ -20,14 +20,8 @@ DAEMON=/usr/sbin/$NAME
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
-#!/bin/bash
-#
-# chkconfig: 35 90 12
-# description: Foo server
-#
 # Get function from functions library
 . /lib/lsb/init-functions
-# Start the service FOO
 
 #make sure files are there
 test -x $DAEMON || exit 5
@@ -37,10 +31,10 @@ case "$1" in
   start)
 	#check if PID file exists before starting process
 	if [ -e $PIDFILE ]; then
-        log_daemon_msg "$NAME already exisits"
+        log_warning_msg "$NAME already exisits"
 		exit
 	fi
-	log_daemon_msg "Starting the process" "$NAME"
+	log_success_msg "Starting the process" "$NAME"
 	#start the daemon wit hthe help of start-stop-daemon
 	#log the message appropriately
     if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON ; then
@@ -52,10 +46,10 @@ case "$1" in
     stop)
     # Stop the daemon.
     if [ -e $PIDFILE ]; then
-        tart-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+        start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
         /bin/rm -rf $PIDFILE
     else
-        log_daemon_msg "$NAME process is not running"
+        log_failure_msg "$NAME process is not running"
         log_end_msg 0
     fi
     ;;
