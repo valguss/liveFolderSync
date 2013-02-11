@@ -10,7 +10,8 @@
 #                    slave server, for example a web server.
 ### END INIT INFO
 
-# Author: Simon Green <simon@wirehive.net>
+# Author: Tom Scott-Malden <tom@skywire.co.uk>
+# Reference: http://www.thegeekstuff.com/2012/03/lsbinit-script/
 
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="Realtime Folder Syncronisation across servers"
@@ -31,22 +32,6 @@ SCRIPTNAME=/etc/init.d/$NAME
 #make sure files are there
 test -x $DAEMON || exit 5
 
-start() {
-        initlog -c "echo -n Starting $NAME server: "
-        nohup $DAEMON &
-        ### Create the lock file ###
-        touch $PIDFILE
-        success $"$NAME server startup"
-        echo
-}
-# Restart the service FOO
-stop() {
-        initlog -c "echo -n Stopping $NAME server: "
-        killproc $NAME
-        ### Now, delete the lock file ###
-        rm -f $PIDFILE
-        echo
-}
 ### main logic ###
 case "$1" in
   start)
@@ -61,20 +46,51 @@ case "$1" in
 	log_daemon_msg "Starting the process" "$NAME"
 	#start the daemon wit hthe help of start-stop-daemon
 	#log the message appropriately
-        start
+    if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --exec $DAEMON ; then
+        log_end_msg 0
+    else
+        log_end_msg 1
+    fi
+    ;;
+    stop)
+    # Stop the daemon.
+    if [ -e $PIDFILE ]; then
+        status_of_proc -p $PIDFILE $DAEMON "Stoppping the $NAME process" && status="0" || status="$?"
+        if [ "$status" = 0 ]; then
+            start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE
+            /bin/rm -rf $PIDFILE
+        fi
+    else
+        log_daemon_msg "$NAME process is not running"
+        log_end_msg 0
+    fi
+    ;;
+    restart)
+        # Restart the daemon.
+        $0 stop && sleep 2 && $0 start
         ;;
-  stop)
-        stop
-        ;;
-  status)
-        status $NAME
-        ;;
-  restart|reload|condrestart)
-        stop
-        start
-        ;;
-  *)
-        echo $"Usage: $0 {start|stop|restart|reload|status}"
-        exit 1
-esac
-exit 0
+    status)
+        # Check the status of the process.
+        if [ -e $PIDFILE ]; then
+            status_of_proc -p $PIDFILE $DAEMON "$NAME process" && exit 0 || exit $?
+        else
+            log_daemon_msg "$NAME Process is not running"
+            log_end_msg 0
+        fi
+    ;;
+    reload)
+        # Reload the process. Basically sending some signal to a daemon to reload
+        # it configurations.
+        if [ -e $PIDFILE ]; then
+            start-stop-daemon --stop --signal USR1 --quiet --pidfile $PIDFILE --name $NAME
+            log_success_msg "$NAME process reloaded successfully"
+        else
+            log_failure_msg "$PIDFILE does not exists"
+        fi
+    ;;
+    *)
+        # For invalid arguments, print the usage message.
+        echo "Usage: $0 {start|stop|restart|reload|status}"
+        exit 2
+    ;;
+    esac
